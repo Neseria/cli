@@ -1,0 +1,23 @@
+skills/lark-base/SKILL.md
+  s_25de044369ee74::t_8f03d1635d9bac 137-138
+skills/lark-base/references/lark-base-view-set-filter.md
+  s_25de044369ee74::t_cbc6d09ab7b412 177,182-183
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "fe63031f4482b56f712b43033b8f823c358818b8",
+  "prompts": {},
+  "sessions": {
+    "s_25de044369ee74": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "ccfcf123-3821-46eb-8289-661e0b886d11",
+        "model": "unknown"
+      },
+      "human_author": "wanglei.75 <wanglei.75@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
