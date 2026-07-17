@@ -1,0 +1,21 @@
+skills/lark-base/SKILL.md
+  s_2ed41c4301ff9d::t_6f59a0c8a479a6 107
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "291b5089c56493fd95d673471faf07c30950d7be",
+  "prompts": {},
+  "sessions": {
+    "s_2ed41c4301ff9d": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019f6e0c-a647-77b2-bbb6-98a5af689e8c",
+        "model": "unknown"
+      },
+      "human_author": "wanglei.75 <wanglei.75@bytedance.com>"
+    }
+  },
+  "attestation_metadata": {},
+  "remote_transcripts": {}
+}
