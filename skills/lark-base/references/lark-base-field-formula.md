@@ -107,6 +107,23 @@ Only an incorrect represented branch may trigger a targeted correction. If repre
 
 Dashboard filters that restrict an aggregate to eligible records remain necessary when the user requests that population, but they do not replace the row-level distinction between a true zero and a non-applicable blank.
 
+### 年度口径不是全历史聚合
+
+“今年、本年度、年度、年底”等时间词约束参与计算的记录范围，不只是字段名称或展示文案。年度评分、汇总、排名或状态判断必须：
+
+1. 使用真实业务日期字段确定记录所属年度。
+2. 在参与聚合的记录集合中加入 `YEAR([日期字段]) = YEAR(TODAY())` 或等价的动态年度条件。
+3. 与引用该结果的 Lookup、Dashboard、汇总表和最终回答保持同一年度范围；不得让公式聚合全历史、下游再单独声称“本年度”。
+4. 创建或更新后先用 `+field-get` 确认保存表达式，再用有界 `+record-list` 回读代表性记录。样例数据恰好都在同一年不能证明年度条件存在。
+
+现有表没有可确定年度归属的日期字段时，新建系统应补充明确的业务日期字段，修改已有系统应先向用户澄清。不得选择语义相邻但不等价的日期，也不得聚合全历史后仅把字段命名为“年度评分”。
+
+### State-driven business formulas
+
+When a formula depends on a status or select field, write a small truth table before editing: each option, the expected result, and the fallback for blank or unknown status. Implement every branch explicitly with `IF` / `IFS` / `SWITCH`; do not replace a status-dependent rule with one generic arithmetic expression.
+
+After `+field-update`, read back the formula field and sample records that cover each status branch. If an expected branch has no current record, state that gap and verify the expression text instead of claiming all branches were data-tested.
+
 ---
 
 ## Section 3: CurrentValue
@@ -352,23 +369,6 @@ After the result column, it's recommended to flatten with `.LISTCOMBINE()` first
 | EOMONTH     | `EOMONTH(date, [months])`                       | Date        | End of month N months later; months default 0                                                           |
 | WORKDAY     | `WORKDAY(start_date, days, [holidays])`         | Date        | Date N workdays later (skips weekends and holidays)                                                     |
 | NETWORKDAYS | `NETWORKDAYS(start_date, end_date, [holidays])` | Number      | Workdays between dates (inclusive)                                                                      |
-
-### 年度口径不是全历史聚合
-
-“今年、本年度、年度、年底”等时间词约束参与计算的记录范围，不只是字段名称或展示文案。年度评分、汇总、排名或状态判断必须：
-
-1. 使用真实业务日期字段确定记录所属年度。
-2. 在参与聚合的记录集合中加入 `YEAR([日期字段]) = YEAR(TODAY())` 或等价的动态年度条件。
-3. 与引用该结果的 Lookup、Dashboard、汇总表和最终回答保持同一年度范围；不得让公式聚合全历史、下游再单独声称“本年度”。
-4. 创建或更新后先用 `+field-get` 确认保存表达式，再用有界 `+record-list` 回读代表性记录。样例数据恰好都在同一年不能证明年度条件存在。
-
-现有表没有可确定年度归属的日期字段时，新建系统应补充明确的业务日期字段，修改已有系统应先向用户澄清。不得选择语义相邻但不等价的日期，也不得聚合全历史后仅把字段命名为“年度评分”。
-
-### State-driven business formulas
-
-When a formula depends on a status or select field, write a small truth table before editing: each option, the expected result, and the fallback for blank or unknown status. Implement every branch explicitly with `IF` / `IFS` / `SWITCH`; do not replace a status-dependent rule with one generic arithmetic expression.
-
-After `+field-update`, read back the formula field and sample records that cover each status branch. If an expected branch has no current record, state that gap and verify the expression text instead of claiming all branches were data-tested.
 
 ### 8.5 List functions
 

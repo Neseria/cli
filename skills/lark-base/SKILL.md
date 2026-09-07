@@ -1,6 +1,6 @@
 ---
 name: lark-base
-version: 1.2.23
+version: 1.2.24
 description: "飞书多维表格（Base）操作：建表、字段、记录、视图、统计、公式/lookup、表单、仪表盘、应用模式（BaseApp/AppMode 页面与组件）、Workspace 目录、workflow、角色权限、模板中心（多维表格模板分类/列表/搜索）；遇到 Base/多维表格/bitable、BaseApp/AppMode、/base/ 或 /app/ 链接时使用。BaseApp 不走 lark-apps；文件导入/导出转 lark-drive，认证/授权转 lark-shared。"
 metadata:
   requires:
@@ -53,7 +53,7 @@ metadata:
 
 **读取 Base：** Base 信息用 `+base-get`，资源目录按下方 Base Block 资源模型读取。
 
-**写入 Base：** 创建新 Base 使用一次 `+base-create --name <base-name> --table-name <table-name> --fields '<field-array>'` 同时创建 Base、首表和 fields；`+base-copy` 复制整个 Base；Base 内资源统一按下方 Block 生命周期管理。
+**写入 Base：** 创建新 Base 使用一次 `+base-create --name <base-name> --table-name <table-name> --fields '<field-array>'` 同时创建 Base、首表和 fields；`--fields` 数组的第一项会成为该表的主字段，不可删除，按业务主键排在首位。`+base-copy` 复制整个 Base。两者都支持 `--folder-token <token>` 指定目标文件夹；用户点名了云空间位置时必须带上，否则新 Base 落在默认位置。Base 内资源统一按下方 Block 生命周期管理。
 
 ## Base 模板中心
 
@@ -97,7 +97,9 @@ Block 的 `id` 按类型直接作为对应模块坐标：
 
 Table 本身是 Base Block，也是 Base 的核心数据存储层；Field、Record、View 和 Form 是 Table 内部对象，不是 Base Block。业务数据查询、写入、关联、统计和分析都从 Table 开始。先用 `+table-list` 定位 Table；字段名和目标已知的普通读取可直接进入 Record 命令，只有写入、筛选或关联等依赖字段类型/schema 的任务才补 `+field-list`。多表的 `+field-list` 可以并发执行。基础的 Record / CellValue 读写直接按下方路径；reference 只承载高级分析、完整协议和边界细节。
 
-**读取 Table：** `+table-list` 定位表，`+table-get` 读取详情。Table 专属复制使用 `+table-copy`，异步状态用 `+table-copy-status`；schema 和 records 由下方内部对象操作。
+**读取 Table：** `+table-list` 定位表，`+table-get` 读取详情。**写入 Table：** `+table-create` 建表，`+table-update --name <new-name>` 改名，`+table-delete` 删表（高风险，会带走该表全部记录，执行前确认目标并按确认门禁传 `--yes`）。
+
+Table 专属复制使用 `+table-copy`，异步状态用 `+table-copy-status`。`--range` 默认是 `schema`，**只复制表结构、不复制任何记录**；用户说“复制这张表 / 复制一份 / 备份”时通常期望连数据一起复制，必须显式传 `--range all`，并配 `--wait` 或用返回的 `next_command` 等异步任务完成后回读记录数。schema 和 records 由下方内部对象操作。
 
 Table 下的大多数更新通过异步链路生效，接口成功返回后立即读取可能暂时看不到最新状态。按上方完成协议做有界回读；同一批无依赖写入可先完成再统一验收，有依赖步骤则必须在进入下一步前确认当前后置条件。
 
@@ -246,7 +248,7 @@ Form 依附于 Table，以 Field 作为题目，每次有效提交会创建一�
 
 ## Dashboard Block
 
-Dashboard Block 是 Base Block 树中的仪表盘容器，负责承载页面主题、布局和内部组件集合，本身不表示某一项图表数据。使用 `+dashboard-list` 定位容器，`+dashboard-get` 读取容器信息，`+dashboard-update` 修改主题，`+dashboard-arrange` 统一编排内部组件布局。
+Dashboard Block 是 Base Block 树中的仪表盘容器，负责承载页面主题、布局和内部组件集合，本身不表示某一项图表数据。使用 `+dashboard-list` 定位容器，`+dashboard-get` 读取容器信息，`+dashboard-create` 新建仪表盘，`+dashboard-update` 修改主题，`+dashboard-delete` 删除整个仪表盘（高风险，会带走其中全部组件），`+dashboard-arrange` 统一编排内部组件布局。
 
 **管理 Dashboard 分享：** 使用 `+dashboard-share-get` / `+dashboard-share-update` 管理启停、访问范围和返回源 Base 入口；更新前先读取现状，每次只修改一个字段，显式 `false` 会被保留。
 
@@ -282,7 +284,7 @@ Workflow 本身是 Base Block，其内部是一张由 `next` / `children` 连接
 3. **运行状态控制：** `+workflow-enable` / `+workflow-disable` 启用或停用已有 Workflow，不修改 steps 执行图。
 
 - 只有用户明确要求自动化，或明确要求修改现有 Workflow 时，才创建、更新或启用 Workflow；字段、公式、视图或 Dashboard 需求本身不构成启用自动化的授权。
-- 用户说“一按 / 一键 / 点一下就知道 / 按钮触发”时，优先评估 button 字段配合 `ButtonTrigger` Workflow，或在表中创建明确的结果字段或视图承载一键判断结果；不要只用静态说明、普通仪表盘或手动筛选替代交互诉求。
+- “一按 / 一键 / 点一下就知道”默认是**查看**诉求，不是自动化授权：先用公式字段承载判断结果，再配筛选视图或 Dashboard 组件呈现，让结论可持续一眼查看。只有用户确实要求“点击后写回 / 触发动作”时，才建 button 字段（见 [Field Schema](references/lark-base-field-schema.md)）并用 `+button-rule-bind` 绑定 `ButtonTrigger` Workflow。无论走哪条，都不要只用静态说明或手动筛选交付。
 
 ## Advanced Permission（AdvPerm）
 

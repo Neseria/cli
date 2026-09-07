@@ -14,7 +14,7 @@
 
 ### 能力边界与意图识别
 
-- 用户说“一按 / 一键 / 点一下就知道 / 按钮触发”时，优先评估 `ButtonTrigger`。结果需要沉淀给用户看时，Workflow 应把判断结果写回表字段、日志表或消息，而不是只交付一段说明或普通看板。
+- “一按 / 一键 / 点一下就知道”默认是查看诉求：先用公式字段加视图或 Dashboard 承载判断结果，不需要 Workflow。只有用户确实要求“点击后写回 / 触发动作”时才用 `ButtonTrigger`，此时先建 button 字段（见 [Field Schema](lark-base-field-schema.md)），再用 `+button-rule-bind` 把它绑定到本 Workflow，最后用 `+button-rule-get` 回读绑定关系；未完成绑定的 `ButtonTrigger` Workflow 不能算交付完成。走 `ButtonTrigger` 时，判断结果仍要写回表字段、日志表或消息，而不是只交付一段说明。
 - 记录新增 / 修改触发和定时扫描都可能实现提醒；选择前先判断用户要实时提醒还是周期巡检。用定时扫描替代实时提醒时，必须在交付里说明触发频率。
 - 只有用户明确要求自动化，或明确要求修改现有 Workflow 时，才创建、更新或启用 Workflow。字段、公式、视图或 Dashboard 需求本身不构成启用自动化的授权。
 
