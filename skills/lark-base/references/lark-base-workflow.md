@@ -12,6 +12,12 @@
 
 ## 交付红线
 
+### 能力边界与意图识别
+
+- 用户说“一按 / 一键 / 点一下就知道 / 按钮触发”时，优先评估 `ButtonTrigger`。结果需要沉淀给用户看时，Workflow 应把判断结果写回表字段、日志表或消息，而不是只交付一段说明或普通看板。
+- 记录新增 / 修改触发和定时扫描都可能实现提醒；选择前先判断用户要实时提醒还是周期巡检。用定时扫描替代实时提醒时，必须在交付里说明触发频率。
+- 只有用户明确要求自动化，或明确要求修改现有 Workflow 时，才创建、更新或启用 Workflow。字段、公式、视图或 Dashboard 需求本身不构成启用自动化的授权。
+
 ### 先确定目标运行态
 
 为本轮每个目标 Workflow 记录 `workflow_id`（新建时先记待返回）、用户意图和 `target_status`。同一目标有多次运行态指令时，以最后一次无歧义指令为准；没有明确指令时按下表从上到下匹配：
@@ -43,6 +49,8 @@ Workflow 子任务必须同时满足：
 ### 条件类型与 fail-closed 验收
 
 含条件的 Workflow 写入前先用 `+field-list` 确认左值真实类型，再按 [Workflow schema](lark-base-workflow-schema.md) 选择 operator、`value_type` 和右值。需要右值的 operator 禁止 `null`、空数组和空字符串；数值必须是有限 number，日期必须是受支持的 date，选项必须来自真实字段配置。
+
+**阈值丢失是静默失败**：右值写成空数组或空字符串后，Workflow 仍会按时触发、状态仍是 `enabled`，只是永远匹配不到记录，不会有任何报错。同一需求的 View 筛选常常是对的，不要因为视图配对了就认为 Workflow 也对，两者各自独立构造。用户需求里有几个边界，保存后的 conditions 里就该有几个非空右值。
 
 创建或更新含行为变化的定义时，必须在写入前进入安全的 disabled 状态：先 `+workflow-get` 保存原运行态；若当前为 enabled，先 `+workflow-disable` 并回读 `status=disabled`，再执行完整 update。新建对象天然为 disabled。写后继续保持 disabled，用 `+workflow-get` 对照完整条件的 `field_name / operator / value / value_type`。回读比较使用**归一化语义**，不是原始 JSON 字节相等：
 

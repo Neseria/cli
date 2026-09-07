@@ -1,6 +1,6 @@
 ---
 name: lark-base
-version: 1.2.22
+version: 1.2.23
 description: "飞书多维表格（Base）操作：建表、字段、记录、视图、统计、公式/lookup、表单、仪表盘、应用模式（BaseApp/AppMode 页面与组件）、Workspace 目录、workflow、角色权限、模板中心（多维表格模板分类/列表/搜索）；遇到 Base/多维表格/bitable、BaseApp/AppMode、/base/ 或 /app/ 链接时使用。BaseApp 不走 lark-apps；文件导入/导出转 lark-drive，认证/授权转 lark-shared。"
 metadata:
   requires:
@@ -213,6 +213,8 @@ lark-cli base +record-batch-update \
 
 大 payload 可用脚本生成 json 后用 `--json @file.json`。单批最多 200 条，超过后分批，同一 Table 串行写入；并行可能触发 `1254291` 并发冲突错误。
 
+单条写入也可用 `+record-upsert --json '<字段映射>'`：不带 `--record-id` 是新建，带 `--record-id` 是更新该条记录；它**不会**按业务主键自动 upsert，需要按业务键定位时先用 `+record-search` / `+record-list --filter-json` 查到真实 `record_id`。批量写入仍优先 `+record-batch-create` / `+record-batch-update`。
+
 #### 3. 其他 Record 操作
 
 - `+record-delete --base-token <base_token> --table-id <table_id> --record-id <id1> --record-id <id2>` 删除若干个记录
@@ -240,7 +242,7 @@ Form 依附于 Table，以 Field 作为题目，每次有效提交会创建一�
 - `+form-questions-create` 支持两种形态：新建字段题目需要 `title` + `type`；已有字段题目需要 `use_existing_field:true` + `field_id`。已有字段题目只是把该字段加入表单，不创建新字段，也不改变已有记录数据；不要给该形态携带 `type`、`style`、`options` 等字段定义属性。
 - 创建问题前先 `+form-questions-list`。若目标标题已经存在，除非用户明确要求同名独立问题，否则优先用 `+form-questions-update` 修改题目配置，不要先创建同名问题再删除旧问题。
 - 用户枚举收集项时，将每一项与写后 `+form-questions-list` 逐项配对；缺项必须创建或把已有字段以 `use_existing_field:true` 加入表单，不能把“表里有字段”当成“表单里有题目”。
-- `+form-questions-delete` 是高风险写操作。默认会删除承载问题的底层 Field 及该字段所有记录数据；只想把题目移出表单并保留字段/数据时必须传 `--keep-field`。保留字段后可用 `+form-questions-create --questions '[{"use_existing_field":true,"field_id":"<field_id>"}]'` 加回表单。
+- `+form-questions-delete` 是高风险写操作。默认会删除承载问题的底层 Field 及该字段所有记录数据；自然语言中的“删除题目”默认按 `--keep-field` 处理，只把题目移出表单并保留字段和数据，只有用户明确要求删除底层字段和整列数据时才省略该参数。完整的删除语义决策表和写后验证步骤见 [questions create](references/lark-base-form-questions-create.md)。保留字段后可用 `+form-questions-create --questions '[{"use_existing_field":true,"field_id":"<field_id>"}]'` 加回表单。
 
 ## Dashboard Block
 
@@ -262,7 +264,7 @@ Workspace 是组织 Base 和 BaseApp 的空间容器；BaseApp 创建时必须�
 
 1. **Workspace：** 使用 `+workspace-create`、`+workspace-entity-list` 和 `+workspace-move-in` 创建目录、列出其中的 Base/BaseApp 或移入资源。
 2. **应用：** 使用 `+app-create` / `+app-get`；应用查询和创建依赖真实 `app_token` / `workspace_token`。
-3. **页面：** 使用 `+app-page-list/get/create/rename/delete` 管理 Page。
+3. **页面：** 使用 `+app-page-list/get/create/update/delete` 管理 Page；重命名走 `+app-page-update`。
 4. **组件：** 使用 `+app-block-list/get/create/update` 读写组件配置，使用 `+app-block-get-data` 读取组件计算结果。
 
 BaseApp、Workspace、Page 或组件任务开始前完整读取 [应用模式与 Workspace](references/lark-base-app.md)；构造组件 `data_config` 时继续读取 [应用组件配置](references/lark-base-app-block-data-config.md)。BaseApp 不走 `lark-apps`。当前不支持 BaseApp 复制、Page 完整复制、页面图标以及从 Workspace 移出资源；遇到这些目标按 reference 的能力边界处理，不以新建空对象或 Drive 移动冒充。
@@ -278,6 +280,9 @@ Workflow 本身是 Base Block，其内部是一张由 `next` / `children` 连接
 1. **读取配置：** `+workflow-list` 定位流程，`+workflow-get` 读取 `title`、`status` 和完整 `steps` 执行图。
 2. **写入配置：** `+workflow-create` 创建完整定义，`+workflow-update` 更新完整定义；构造或修改配置前读取 [Workflow](references/lark-base-workflow.md)，由该入口继续路由 step 类型和 schema。
 3. **运行状态控制：** `+workflow-enable` / `+workflow-disable` 启用或停用已有 Workflow，不修改 steps 执行图。
+
+- 只有用户明确要求自动化，或明确要求修改现有 Workflow 时，才创建、更新或启用 Workflow；字段、公式、视图或 Dashboard 需求本身不构成启用自动化的授权。
+- 用户说“一按 / 一键 / 点一下就知道 / 按钮触发”时，优先评估 button 字段配合 `ButtonTrigger` Workflow，或在表中创建明确的结果字段或视图承载一键判断结果；不要只用静态说明、普通仪表盘或手动筛选替代交互诉求。
 
 ## Advanced Permission（AdvPerm）
 
